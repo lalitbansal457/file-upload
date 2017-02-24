@@ -47,7 +47,7 @@ app.post( '/uploads', ( req, res ) => {
       res.status(400).json( {message: err} );
     } else {
       res.status(200).json( {
-        file: req.protocol + 'http://' + req.get('host') + '/images/' + req.file.filename
+        file: req.protocol + '://' + req.get('host') + '/images/' + req.file.filename
       } )
     }
   })

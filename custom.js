@@ -1,24 +1,6 @@
 var myApp = angular.module('myApp', []);
 
-
-myApp.service('fileUpload', ['$https', function ($https) {
-    this.uploadFileToUrl = function(file, uploadUrl){
-       var fd = new FormData();
-       fd.append('file', file);
-    
-       $https.post(uploadUrl, fd, {
-          transformRequest: angular.identity,
-          headers: {'Content-Type': undefined}
-       })
-    
-       .success(function(){
-       })
-    
-       .error(function(){
-       });
-    }
- }]);
-
+/* Directive for updating the model value */
 myApp.directive('fileModel', ['$parse', function ($parse) {
 	return {
 	   restrict: 'A',
@@ -36,32 +18,70 @@ myApp.directive('fileModel', ['$parse', function ($parse) {
 }]);
 
 
-myApp.controller('sampleAppCtrl', ['$scope', '$http', function($scope, $http) {
+myApp.controller('sampleAppCtrl', ['$scope', '$http', '$location', '$timeout', function($scope, $http, $location, $timeout) {
+	var httpUrl = $location.protocol() + '://'+ $location.host() +':'+  $location.port();
+	/* Check canvas list of images from localStorage */
+	if(localStorage.canvasImgList) {
+		$scope.canvasImgList = JSON.parse(localStorage.canvasImgList);
+	} else {
+		$scope.canvasImgList = [];
+	}
+	
+	/* Function to upload File */
 	$scope.uploadFile = function(){
-	   var file = $scope.myFile;
+	   	var file = $scope.myFile;
+	   console.log($location.protocol() + '://'+ $location.host() +':'+  $location.port() )
+	   	$scope.uploadFileToUrl = function(file, uploadUrl){
+	      	var fd = new FormData();
+	      	fd.append('upload', file);
+	   		/* api hit for uploading the images */
+	      	$http.post(httpUrl+ "/uploads", fd, {
+	         	transformRequest: angular.identity,
+	         	headers: {'Content-Type': undefined}
+	      	})
 	   
-	   console.log('file is ' );
-	   console.dir(file);
+	      	.success(function(res){
+	      		$scope.getImages();
+	      	})
 	   
-	   var uploadUrl = "http://localhost:8000/uploads";
-	   //fileUpload.uploadFileToUrl(file, uploadUrl);
-	   $scope.uploadFileToUrl = function(file, uploadUrl){
-	      var fd = new FormData();
-	      fd.append('file', file);
-	   
-	      $http.post(uploadUrl, fd, {
-	         transformRequest: angular.identity,
-	         headers: {'Content-Type': undefined}
-	      })
-	   
-	      .success(function(res){
-	      	console.log(res)
-	      })
-	   
-	      .error(function(){
-	      	console.log("eror")
-	      });
+	      	.error(function(){
+	      		
+	      	});
 	   }
-	   $scope.uploadFileToUrl(file, uploadUrl)
+	   $scope.uploadFileToUrl(file, httpUrl)
 	};
+
+	/* api hit for getting the images */
+	$scope.getImages = function() {
+		$http.get(httpUrl+'/images').then(function(res) {
+			$scope.imageList = res.data;
+		});
+	}
+	$scope.getImages();
+
+	/* function to Save image to canvas */
+	$scope.saveToCanvas = function(url) {
+		if($scope.canvasImgList.indexOf(url) == -1) {
+			$scope.canvasImgList.push(url);
+			localStorage.setItem('canvasImgList', JSON.stringify($scope.canvasImgList));
+		} else {
+			window.alert("Image already exist");
+		}
+		
+	}
+
+	/* function to remove image from canvas */
+	$scope.removeFromCanvas = function(index) {
+		$scope.canvasImgList.splice(index,1);
+		localStorage.setItem('canvasImgList', JSON.stringify($scope.canvasImgList));
+	}
+
+	/* Function to move the canvas image block*/
+	$timeout(function(){
+		jQuery( ".dragdrop" ).draggable({
+			containment: ".canvas"
+		});
+	}, 1500)
+	
+	
 }]);
